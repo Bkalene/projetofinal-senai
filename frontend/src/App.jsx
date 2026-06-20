@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from './supabaseClient';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, BarChart3 as BarChartIcon, List, Send, Loader2, ChevronLeft, ChevronRight, Edit2, Trash2, X, TrendingUp } from 'lucide-react';
+import { Activity, BarChart3 as BarChartIcon, List, Send, Loader2, ChevronLeft, ChevronRight, Edit2, Trash2, X, TrendingUp, Mic, MicOff } from 'lucide-react';
 import './index.css';
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf'];
@@ -13,6 +13,41 @@ function App() {
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [isListening, setIsListening] = useState(false);
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta gravação de voz.");
+      return;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInputText(transcript);
+      sendTextToBackend(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Erro no reconhecimento:", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -56,9 +91,8 @@ function App() {
     // eslint-disable-next-line
   }, [currentDate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
+  const sendTextToBackend = async (textToProcess) => {
+    if (!textToProcess.trim()) return;
 
     setIsProcessing(true);
     setFeedbackMsg('');
@@ -67,7 +101,7 @@ function App() {
       const response = await fetch('https://projetofinal-senai.onrender.com/transaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText })
+        body: JSON.stringify({ text: textToProcess })
       });
 
       if (!response.ok) {
@@ -83,6 +117,11 @@ function App() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    sendTextToBackend(inputText);
   };
 
   const handlePrevMonth = () => {
@@ -231,11 +270,20 @@ function App() {
             className="nlp-input"
           />
           <button 
+            type="button"
+            onClick={startListening}
+            disabled={isProcessing || isListening}
+            className={`mic-btn ${isListening ? 'listening' : ''}`}
+            title="Ditar por voz"
+          >
+            {isListening ? <Mic className="spinner" size={20} /> : <Mic size={20} />}
+          </button>
+          <button 
             type="submit" 
-            disabled={isProcessing || !inputText.trim()}
+            disabled={isProcessing || (!inputText.trim() && !isListening)}
             className="nlp-btn"
           >
-            {isProcessing ? <><Loader2 className="spinner" size={20} /> Processando...</> : <><Send size={20} /> Enviar</>}
+            {isProcessing ? <><Loader2 className="spinner" size={20} /> ...</> : <><Send size={20} /> Enviar</>}
           </button>
         </form>
         {feedbackMsg && <span className="feedback-msg">{feedbackMsg}</span>}
