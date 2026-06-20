@@ -1,5 +1,7 @@
 # Wallet App - Controle Inteligente (NLP) 🚀
 
+🌐 **Acesse o projeto online:** [https://projetofinal-senai-git-main-brisa-kalene-s-projects.vercel.app/](https://projetofinal-senai-git-main-brisa-kalene-s-projects.vercel.app/)
+
 Um aplicativo de gestão financeira inteligente "End-to-End" focado no processamento de linguagem natural (NLP). Desenvolvido a partir da metodologia MSEP (Mão na massa, Stack Completa, End-to-End e Publicação).
 
 O Wallet App permite que você registre seus gastos de forma natural (Ex: *"Gastei 50 reais de Uber hoje"*). A inteligência artificial entende, extrai a categoria, valor e data, salvando tudo no banco de dados e refletindo instantaneamente em um Dashboard moderno e reativo.
