@@ -1,0 +1,19 @@
+# Dependências Node
+frontend/node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Dependências Python
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Chaves Secretas e Variáveis de Ambiente
+.env
+.env.*
+!.env.example
+
+# Outros
+.DS_Store
+.vscode/
