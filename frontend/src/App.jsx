@@ -64,7 +64,7 @@ function App() {
     setFeedbackMsg('');
 
     try {
-      const response = await fetch('http://localhost:8000/transaction', {
+      const response = await fetch('https://projetofinal-senai.onrender.com/transaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: inputText })
