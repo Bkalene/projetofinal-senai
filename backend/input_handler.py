@@ -132,6 +132,15 @@ def create_transaction(req: TransactionRequest):
 class AdvisorRequest(BaseModel):
     receita: float
     gasto: float
+    metas_status: str = None
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    context: str
 
 @app.post("/advisor")
 def financial_advisor(req: AdvisorRequest):
@@ -143,6 +152,9 @@ def financial_advisor(req: AdvisorRequest):
     """
     
     prompt = f"Minha Receita do mês: R${req.receita:.2f}. Meus Gastos do mês: R${req.gasto:.2f}."
+    
+    if req.metas_status:
+        prompt += f"\nE aqui está o status das Metas por Categoria do usuário:\n{req.metas_status}\nPor favor, leve essas metas em consideração ao dar sua dica se ele estiver perto de estourar algum limite!"
     model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_instruction)
     
     try:
@@ -151,6 +163,39 @@ def financial_advisor(req: AdvisorRequest):
     except Exception as e:
         print(f"Erro ao gerar dica: {e}")
         raise HTTPException(status_code=500, detail="Falha ao gerar conselho.")
+
+@app.post("/chat")
+def financial_chat(req: ChatRequest):
+    try:
+        system_instruction = f"""Você é um assistente financeiro pessoal de elite, amigável e direto.
+O usuário está conversando com você no painel do Wallet App.
+Responda às perguntas dele baseando-se EXCLUSIVAMENTE nestes dados do mês atual:
+{req.context}
+
+Siga as diretrizes:
+1. Seja conciso e vá direto ao ponto, não enrole.
+2. Se o usuário perguntar sobre algo que não está nos dados, informe que você só tem acesso aos dados fornecidos.
+3. Use formatação Markdown (negrito, listas) para deixar a leitura fácil no chat.
+"""
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=system_instruction,
+            generation_config={"temperature": 0.4}
+        )
+
+        formatted_messages = []
+        for msg in req.messages:
+            formatted_messages.append({
+                "role": "model" if msg.role == "assistant" else "user",
+                "parts": [msg.content]
+            })
+
+        response = model.generate_content(formatted_messages)
+        return {"response": response.text}
+
+    except Exception as e:
+        print(f"Erro no chat: {e}")
+        raise HTTPException(status_code=500, detail="Falha no chat.")
 
 @app.api_route("/keepalive", methods=["GET", "HEAD"])
 def keep_alive():
