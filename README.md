@@ -6,6 +6,7 @@ Um aplicativo de gestão financeira inteligente "End-to-End" focado no processam
 
 O Wallet App permite que você registre seus gastos de forma natural (Ex: *"Gastei 50 reais de Uber hoje"*). A inteligência artificial entende, extrai a categoria, valor e data, salvando tudo no banco de dados e refletindo instantaneamente em um Dashboard moderno e reativo.
 
+Pode brincar a vontade!
 ---
 
 ## 📱 Transforme em App no Celular (PWA-like)
