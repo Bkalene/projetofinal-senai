@@ -107,4 +107,42 @@ SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA_SUPABASE
 
 ---
 
+## 🗄️ Configurando o Supabase (Banco de Dados)
+
+O aplicativo precisa de um banco de dados no Supabase para salvar as transações e enviá-las em tempo real para a tela.
+
+1. Crie uma conta e um novo projeto no [Supabase](https://supabase.com).
+2. Acesse o **SQL Editor** no painel do seu projeto e execute o seguinte comando para criar a tabela:
+```sql
+create table transactions (
+  id uuid default gen_random_uuid() primary key,
+  descricao text,
+  valor numeric,
+  categoria text,
+  data timestamp with time zone default now()
+);
+```
+3. **Habilitar Tempo Real (Realtime):** Vá no menu lateral em `Database` > `Replication` (ou `Realtime` dependendo da versão do painel) e ative a replicação para a tabela `transactions`. Isso faz a tela atualizar sozinha.
+4. Vá em `Project Settings` > `API` para copiar a `URL` e a `anon public key` para colocar no seu arquivo `.env`.
+
+---
+
+## ☁️ Publicando o Backend no Render
+
+Para colocar a Inteligência Artificial e a API na nuvem de graça:
+
+1. Crie uma conta no [Render](https://render.com).
+2. Clique em **New** > **Web Service**.
+3. Conecte com o seu repositório do Github.
+4. Nas configurações do serviço, preencha:
+   - **Root Directory:** `backend`
+   - **Environment:** `Python 3`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn input_handler:app --host 0.0.0.0 --port $PORT`
+5. Na aba **Environment Variables**, adicione todas as chaves do seu arquivo `.env` (GeminiKey, SUPABASE_URL, etc).
+6. Clique em **Create Web Service**.
+7. *(Opcional mas recomendado)* Use o UptimeRobot para pingar a rota `SUA_URL_DO_RENDER/tasks/keepalive` a cada 5 minutos para que seu robô não durma.
+
+---
+
 *Projeto desenvolvido como trabalho final.*
