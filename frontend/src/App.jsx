@@ -217,6 +217,7 @@ function App() {
   const chartDataPayment = useMemo(() => {
     const payments = {};
     transactions.forEach(tx => {
+      if (tx.categoria === 'Receita') return; // Ignore income in payment method chart
       let pay = tx.forma_pagamento;
       
       // Fallback inteligente: Se a coluna forma_pagamento não existir no Supabase 
