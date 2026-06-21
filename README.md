@@ -145,4 +145,4 @@ Para colocar a Inteligência Artificial e a API na nuvem de graça:
 
 ---
 
-*Projeto desenvolvido como trabalho final.*
+*Projeto desenvolvido como trabalho final do curso de "Desenvolvimento de aplicativos com IA Generativa usando Antigravity".*
