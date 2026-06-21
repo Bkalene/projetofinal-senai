@@ -52,14 +52,18 @@ class TransactionRequest(BaseModel):
 def process_nlp(text_input: str):
     system_instruction = """
     Você é um tradutor puro de NLP financeiro.
-    Sua única tarefa é ler a entrada de texto bruto e devolvê-la estritamente como um objeto JSON.
+    Sua tarefa é ler a entrada de texto bruto e devolvê-la estritamente como um objeto JSON.
+    Identifique se o texto representa um GASTO ou uma RECEITA (ganho, salário, entrada de dinheiro).
+    Se for uma RECEITA, a chave "categoria" deve ser OBRIGATORIAMENTE "Receita".
+    Se for um GASTO, infira a "categoria" normalmente (ex: "Transporte", "Alimentação", "Lazer").
+    
     Não adicione blocos de código (```json), explicações ou qualquer outro texto na resposta.
     O JSON deve ter exatamente as seguintes chaves:
     {
-      "categoria": string (inferida do texto, ex: "Transporte", "Alimentação", "Lazer"),
-      "valor": float (extraído do texto, assuma BRL),
+      "categoria": string (veja regra acima: se for ganho/entrada de dinheiro, DEVE ser "Receita"),
+      "valor": float (extraído do texto, assuma BRL e sempre positivo),
       "data": string (formato ISO 8601, assuma a data atual ou passada conforme contexto),
-      "descricao": string (uma breve descrição do gasto),
+      "descricao": string (uma breve descrição do gasto ou ganho),
       "forma_pagamento": string (inferida do texto, deve ser estritamente um destes: "pix", "debito", "credito" ou "dinheiro" - sem acentos)
     }
     """
@@ -120,6 +124,29 @@ def create_transaction(req: TransactionRequest):
     else:
         # Modo fallback apenas leitura do NLP se não tem DB (não deve ocorrer no nosso pipeline MSEP)
         return {"status": "processado_sem_banco", "data": data}
+
+class AdvisorRequest(BaseModel):
+    receita: float
+    gasto: float
+
+@app.post("/advisor")
+def financial_advisor(req: AdvisorRequest):
+    system_instruction = """
+    Você é um conselheiro financeiro amigável, direto e inspirador.
+    O usuário vai lhe fornecer o total de Receitas e o total de Gastos do mês atual.
+    Sua tarefa é dar UMA dica financeira rápida de como economizar ou investir, focada na proporção de receita vs gastos informada.
+    Sua resposta deve ter no máximo 2 frases curtas. Não use jargões difíceis.
+    """
+    
+    prompt = f"Minha Receita do mês: R${req.receita:.2f}. Meus Gastos do mês: R${req.gasto:.2f}."
+    model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_instruction)
+    
+    try:
+        response = model.generate_content(prompt)
+        return {"tip": response.text.strip()}
+    except Exception as e:
+        print(f"Erro ao gerar dica: {e}")
+        raise HTTPException(status_code=500, detail="Falha ao gerar conselho.")
 
 if __name__ == "__main__":
     print("=== Iniciando Servidor Wallet App API (FastAPI) ===")

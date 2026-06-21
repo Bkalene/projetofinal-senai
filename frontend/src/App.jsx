@@ -14,6 +14,8 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [advisorTip, setAdvisorTip] = useState('');
+  const [advisorLoading, setAdvisorLoading] = useState(false);
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -171,6 +173,7 @@ function App() {
   const chartDataBar = useMemo(() => {
     const categories = {};
     transactions.forEach(tx => {
+      if (tx.categoria === 'Receita') return; // Ignore income in expense chart
       const cat = tx.categoria || 'Outros';
       const val = parseFloat(tx.valor) || 0;
       if (!categories[cat]) categories[cat] = 0;
@@ -241,9 +244,55 @@ function App() {
     })).sort((a, b) => b.value - a.value);
   }, [transactions]);
 
-  const totalGasto = chartDataBar.reduce((acc, curr) => acc + curr.value, 0);
+  const { totalReceita, totalGasto } = useMemo(() => {
+    let rec = 0;
+    let gas = 0;
+    transactions.forEach(tx => {
+      const val = parseFloat(tx.valor) || 0;
+      if (tx.categoria === 'Receita') {
+        rec += val;
+      } else {
+        gas += val;
+      }
+    });
+    return { totalReceita: rec, totalGasto: gas };
+  }, [transactions]);
+  
+  const saldoAtual = totalReceita - totalGasto;
   const maiorCategoria = chartDataBar.length > 0 ? chartDataBar[0].name : 'N/A';
   const maiorGasto = chartDataBar.length > 0 ? chartDataBar[0].value : 0;
+
+  useEffect(() => {
+    const fetchAdvisorTip = async () => {
+      if (transactions.length === 0) {
+        setAdvisorTip('');
+        return;
+      }
+      setAdvisorLoading(true);
+      try {
+        const response = await fetch('https://projetofinal-senai.onrender.com/advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receita: totalReceita, gasto: totalGasto })
+        });
+        if (response.ok) {
+          const resData = await response.json();
+          setAdvisorTip(resData.tip);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar dica do conselheiro:', err);
+      } finally {
+        setAdvisorLoading(false);
+      }
+    };
+    
+    // Pequeno delay (debounce) para não flodar a API se vierem muitas mudanças rápidas
+    const delayDebounceFn = setTimeout(() => {
+      fetchAdvisorTip();
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [totalReceita, totalGasto, transactions.length]);
 
   const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   const currentMonthName = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
@@ -324,13 +373,28 @@ function App() {
 
       <div className="summary-cards full-width">
          <div className="summary-card">
-           <span className="summary-label">Total Gasto ({currentMonthName})</span>
-           <span className="summary-value">R$ {totalGasto.toFixed(2)}</span>
+           <span className="summary-label">Receita do Mês</span>
+           <span className="summary-value" style={{color: '#34d399', WebkitTextFillColor: 'initial'}}>R$ {totalReceita.toFixed(2)}</span>
          </div>
          <div className="summary-card">
-           <span className="summary-label">Maior Gasto do Mês</span>
-           <span className="summary-value">{maiorCategoria} (R$ {maiorGasto.toFixed(2)})</span>
+           <span className="summary-label">Gasto Total</span>
+           <span className="summary-value" style={{color: '#fb7185', WebkitTextFillColor: 'initial'}}>R$ {totalGasto.toFixed(2)}</span>
          </div>
+         <div className="summary-card">
+           <span className="summary-label">Saldo Atual</span>
+           <span className="summary-value" style={{color: saldoAtual >= 0 ? '#34d399' : '#fb7185', WebkitTextFillColor: 'initial'}}>R$ {saldoAtual.toFixed(2)}</span>
+         </div>
+      </div>
+
+      <div className="card full-width">
+        <h2><Activity size={24} color="#a78bfa" /> Seu Conselheiro Financeiro</h2>
+        {advisorLoading ? (
+          <p>Analisando suas finanças…</p>
+        ) : (
+          <p style={{ fontSize: '1.1rem', color: '#e2e8f0', lineHeight: '1.6', fontStyle: 'italic' }}>
+            "{advisorTip || "Adicione algumas transações para receber dicas personalizadas."}"
+          </p>
+        )}
       </div>
 
       <div className="card">
@@ -438,8 +502,8 @@ function App() {
                     <span className="transaction-date">{dataFormatada}</span>
                   </div>
                   <div className="transaction-actions-wrapper">
-                    <div className="transaction-value">
-                      -R$ {parseFloat(tx.valor || 0).toFixed(2)}
+                    <div className="transaction-value" style={{color: tx.categoria === 'Receita' ? '#34d399' : '#fb7185'}}>
+                      {tx.categoria === 'Receita' ? '+' : '-'}R$ {parseFloat(tx.valor || 0).toFixed(2)}
                     </div>
                     <div className="transaction-actions">
                       <button aria-label="Editar transação" className="action-btn edit" onClick={() => openEditModal(tx)}><Edit2 size={18} /></button>
