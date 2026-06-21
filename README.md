@@ -141,7 +141,24 @@ Para colocar a Inteligência Artificial e a API na nuvem de graça:
    - **Start Command:** `uvicorn input_handler:app --host 0.0.0.0 --port $PORT`
 5. Na aba **Environment Variables**, adicione todas as chaves do seu arquivo `.env` (GeminiKey, SUPABASE_URL, etc).
 6. Clique em **Create Web Service**.
-7. *(Opcional mas recomendado)* Use o UptimeRobot para pingar a rota `SUA_URL_DO_RENDER/tasks/keepalive` a cada 5 minutos para que seu robô não durma.
+7. *(Opcional mas recomendado)* Siga o passo a passo da próxima seção para configurar o UptimeRobot e garantir que seu backend não durma.
+
+---
+
+## 🤖 Configurando o UptimeRobot (Anti-Sleep)
+
+Para garantir que o seu backend hospedado gratuitamente no Render não "durma" após 15 minutos de inatividade:
+
+1. Crie uma conta gratuita no [UptimeRobot](https://uptimerobot.com/).
+2. No painel principal, clique no botão **Add New Monitor** (Adicionar Novo Monitor).
+3. Preencha as configurações do monitor conforme abaixo:
+   - **Monitor Type:** `HTTP(s)`
+   - **Friendly Name:** `Wallet App Keep-Alive` (ou qualquer nome de sua preferência)
+   - **URL (or IP):** Cole a URL do seu backend hospedado no Render e adicione `/tasks/keepalive` no final (Exemplo: `https://seu-app-backend.onrender.com/tasks/keepalive`)
+   - **Monitoring Interval:** `5 minutes` (Isso garante que o Render receba tráfego antes dos 15 minutos de limite)
+4. Clique no botão **Create Monitor** e confirme na tela seguinte.
+
+Pronto! Agora o UptimeRobot fará uma requisição a cada 5 minutos na rota de manutenção. Seu servidor ficará 100% do tempo "acordado" (warm), garantindo respostas ultrarrápidas no seu Wallet App!
 
 ---
 
