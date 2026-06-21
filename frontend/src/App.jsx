@@ -214,9 +214,22 @@ function App() {
   const chartDataPayment = useMemo(() => {
     const payments = {};
     transactions.forEach(tx => {
+      let pay = tx.forma_pagamento;
+      
+      // Fallback inteligente: Se a coluna forma_pagamento não existir no Supabase 
+      // ou for nula, tentamos adivinhar pela descrição.
+      if (!pay) {
+        const desc = (tx.descricao || '').toLowerCase();
+        if (desc.includes('pix')) pay = 'pix';
+        else if (desc.includes('crédito') || desc.includes('credito')) pay = 'credito';
+        else if (desc.includes('débito') || desc.includes('debito')) pay = 'debito';
+        else if (desc.includes('dinheiro') || desc.includes('espécie')) pay = 'dinheiro';
+        else pay = 'Outros';
+      }
+
       // Capitalize first letter for better UI
-      let pay = tx.forma_pagamento || 'Outros';
       pay = pay.charAt(0).toUpperCase() + pay.slice(1);
+      
       const val = parseFloat(tx.valor) || 0;
       if (!payments[pay]) payments[pay] = 0;
       payments[pay] += val;
