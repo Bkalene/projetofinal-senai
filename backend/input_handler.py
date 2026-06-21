@@ -114,8 +114,12 @@ def create_transaction(req: TransactionRequest):
 
     if supabase:
         try:
+            # Remover 'forma_pagamento' porque a coluna não existe no banco de dados e quebra a inserção
+            data_to_insert = data.copy()
+            data_to_insert.pop("forma_pagamento", None)
+            
             # Usar a biblioteca nova retorna response que contém data
-            response = supabase.table('transactions').insert(data).execute()
+            response = supabase.table('transactions').insert(data_to_insert).execute()
             inserted = response.data
             return {"status": "sucesso", "data": inserted[0] if inserted else data}
         except Exception as e:
