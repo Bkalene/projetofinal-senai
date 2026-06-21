@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from './supabaseClient';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, BarChart3 as BarChartIcon, List, Send, Loader2, ChevronLeft, ChevronRight, Edit2, Trash2, X, TrendingUp, Mic, MicOff } from 'lucide-react';
+import { Activity, BarChart3 as BarChartIcon, List, Send, Loader2, ChevronLeft, ChevronRight, Edit2, Trash2, X, TrendingUp, Mic, MicOff, CreditCard } from 'lucide-react';
 import './index.css';
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf'];
@@ -211,6 +211,23 @@ function App() {
     });
   }, [transactions]);
 
+  const chartDataPayment = useMemo(() => {
+    const payments = {};
+    transactions.forEach(tx => {
+      // Capitalize first letter for better UI
+      let pay = tx.forma_pagamento || 'Outros';
+      pay = pay.charAt(0).toUpperCase() + pay.slice(1);
+      const val = parseFloat(tx.valor) || 0;
+      if (!payments[pay]) payments[pay] = 0;
+      payments[pay] += val;
+    });
+
+    return Object.keys(payments).map(pay => ({
+      name: pay,
+      value: payments[pay]
+    })).sort((a, b) => b.value - a.value);
+  }, [transactions]);
+
   const totalGasto = chartDataBar.reduce((acc, curr) => acc + curr.value, 0);
   const maiorCategoria = chartDataBar.length > 0 ? chartDataBar[0].name : 'N/A';
   const maiorGasto = chartDataBar.length > 0 ? chartDataBar[0].value : 0;
@@ -351,6 +368,37 @@ function App() {
                 <Line type="monotone" dataKey="total" stroke="#34d399" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 <Line type="monotone" dataKey="daily" stroke="#60a5fa" strokeWidth={2} strokeDasharray="5 5" />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="chart-container"><p>Nenhum dado encontrado.</p></div>
+        )}
+      </div>
+
+      <div className="card">
+        <h2><CreditCard size={24} color="#fbbf24" /> Métodos de Pagamento</h2>
+        {loading ? (
+          <div className="chart-container"><p>Carregando...</p></div>
+        ) : chartDataPayment.length > 0 ? (
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartDataPayment} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={(value) => `R$ ${value}`} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  formatter={(value) => `R$ ${value.toFixed(2)}`}
+                  contentStyle={{ borderRadius: '12px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  itemStyle={{ color: '#f8fafc' }}
+                  labelStyle={{ color: '#94a3b8' }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {chartDataPayment.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         ) : (

@@ -59,14 +59,15 @@ def process_nlp(text_input: str):
       "categoria": string (inferida do texto, ex: "Transporte", "Alimentação", "Lazer"),
       "valor": float (extraído do texto, assuma BRL),
       "data": string (formato ISO 8601, assuma a data atual ou passada conforme contexto),
-      "descricao": string (uma breve descrição do gasto)
+      "descricao": string (uma breve descrição do gasto),
+      "forma_pagamento": string (inferida do texto, deve ser estritamente um destes: "pix", "debito", "credito" ou "dinheiro" - sem acentos)
     }
     """
     
     today_iso = datetime.datetime.now().isoformat()
     prompt = f"Data atual: {today_iso}\nTexto do usuário: {text_input}"
 
-    model = genai.GenerativeModel('gemini-3.5-flash', system_instruction=system_instruction)
+    model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_instruction)
     
     try:
         response = model.generate_content(prompt)
@@ -92,6 +93,20 @@ def create_transaction(req: TransactionRequest):
     
     if not data:
         raise HTTPException(status_code=500, detail="Falha ao extrair dados usando Gemini.")
+
+    # Normalizar a forma de pagamento para evitar erros de acentuação ou variação
+    if "forma_pagamento" in data and isinstance(data["forma_pagamento"], str):
+        fp = data["forma_pagamento"].lower()
+        if "pix" in fp:
+            data["forma_pagamento"] = "pix"
+        elif "deb" in fp or "déb" in fp:
+            data["forma_pagamento"] = "debito"
+        elif "cred" in fp or "créd" in fp:
+            data["forma_pagamento"] = "credito"
+        elif "dinh" in fp or "espécie" in fp or "especie" in fp:
+            data["forma_pagamento"] = "dinheiro"
+        else:
+            data["forma_pagamento"] = "dinheiro"
 
     if supabase:
         try:
