@@ -458,7 +458,7 @@ function App() {
         <button aria-label="Mês anterior" onClick={handlePrevMonth}><ChevronLeft size={24} /></button>
         <h2>{currentMonthName}</h2>
         <button aria-label="Próximo mês" onClick={handleNextMonth}><ChevronRight size={24} /></button>
-        <button className="metas-btn" onClick={() => setShowMetasModal(true)} title="Gerenciar Metas">
+        <button className="metas-btn desktop-only" onClick={() => setShowMetasModal(true)} title="Gerenciar Metas">
           <Target size={20} /> Metas
         </button>
       </div>
@@ -494,6 +494,12 @@ function App() {
           </button>
         </form>
         {feedbackMsg && <span className="feedback-msg">{feedbackMsg}</span>}
+      </div>
+
+      <div className="mobile-only-actions">
+        <button className="metas-btn" onClick={() => setShowMetasModal(true)} title="Gerenciar Metas">
+          <Target size={20} /> Metas
+        </button>
       </div>
 
       <div className="summary-cards full-width">
