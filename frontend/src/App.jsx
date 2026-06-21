@@ -422,7 +422,7 @@ function App() {
         )}
       </div>
 
-      <div className="card full-width">
+      <div className="card">
         <h2><List size={24} color="#a78bfa" /> Histórico de Transações</h2>
         {loading ? (
           <p>Carregando…</p>
