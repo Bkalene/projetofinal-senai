@@ -682,6 +682,7 @@ header p {
 
 /* Visibility helpers */
 .global-actions {
+  grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
   width: 100%;
