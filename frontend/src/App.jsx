@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from './supabaseClient';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, BarChart3 as BarChartIcon, List, Send, Loader2, ChevronLeft, ChevronRight, Edit2, Trash2, X, TrendingUp, Mic, MicOff, CreditCard } from 'lucide-react';
+import { Activity, BarChart3 as BarChartIcon, List, Send, Loader2, ChevronLeft, ChevronRight, Edit2, Trash2, X, TrendingUp, Mic, MicOff, CreditCard, MessageSquare, Target } from 'lucide-react';
 import './index.css';
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf'];
@@ -16,6 +16,14 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [advisorTip, setAdvisorTip] = useState('');
   const [advisorLoading, setAdvisorLoading] = useState(false);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([{role: 'assistant', content: 'Olá! Sou seu consultor financeiro inteligente. Pergunte o que quiser sobre os dados deste mês!'}]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const [showMetasModal, setShowMetasModal] = useState(false);
+  const [metaForm, setMetaForm] = useState({ categoria: '', valor: '' });
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -170,9 +178,85 @@ function App() {
     }
   };
 
+  const handleSaveMeta = async (e) => {
+    e.preventDefault();
+    if (!metaForm.categoria || !metaForm.valor) return;
+    try {
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      
+      const { data: existing } = await supabase.from('transactions')
+        .select('id')
+        .eq('categoria', 'META_CATEGORIA')
+        .eq('descricao', metaForm.categoria)
+        .gte('data', startOfMonth)
+        .lte('data', endOfMonth);
+
+      if (existing && existing.length > 0) {
+        await supabase.from('transactions').update({
+          valor: parseFloat(metaForm.valor),
+          data: new Date().toISOString()
+        }).eq('id', existing[0].id);
+      } else {
+        await supabase.from('transactions').insert({
+          categoria: 'META_CATEGORIA',
+          descricao: metaForm.categoria,
+          valor: parseFloat(metaForm.valor),
+          data: new Date().toISOString()
+        });
+      }
+      setShowMetasModal(false);
+      setMetaForm({ categoria: '', valor: '' });
+      fetchTransactions();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const sendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    const newMsg = { role: 'user', content: chatInput };
+    setChatMessages(prev => [...prev, newMsg]);
+    setChatInput('');
+    setChatLoading(true);
+    
+    try {
+      const response = await fetch('https://projetofinal-senai.onrender.com/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...chatMessages, newMsg],
+          context: JSON.stringify(realTransactions)
+        })
+      });
+      const data = await response.json();
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Ops, tive um problema de conexão. Tente novamente.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const { realTransactions, metas } = useMemo(() => {
+    const real = [];
+    const m = {};
+    transactions.forEach(tx => {
+      if (tx.categoria === 'META_CATEGORIA') {
+        m[tx.descricao] = parseFloat(tx.valor);
+      } else {
+        real.push(tx);
+      }
+    });
+    return { realTransactions: real, metas: m };
+  }, [transactions]);
+
   const chartDataBar = useMemo(() => {
     const categories = {};
-    transactions.forEach(tx => {
+    realTransactions.forEach(tx => {
       if (tx.categoria === 'Receita') return; // Ignore income in expense chart
       const cat = tx.categoria || 'Outros';
       const val = parseFloat(tx.valor) || 0;
@@ -188,7 +272,7 @@ function App() {
 
   const chartDataLine = useMemo(() => {
     const days = {};
-    transactions.forEach(tx => {
+    realTransactions.forEach(tx => {
       const dateObj = new Date(tx.data);
       const dayStr = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
       const val = parseFloat(tx.valor) || 0;
@@ -216,7 +300,7 @@ function App() {
 
   const chartDataPayment = useMemo(() => {
     const payments = {};
-    transactions.forEach(tx => {
+    realTransactions.forEach(tx => {
       if (tx.categoria === 'Receita') return; // Ignore income in payment method chart
       let pay = tx.forma_pagamento;
       
@@ -248,7 +332,7 @@ function App() {
   const { totalReceita, totalGasto } = useMemo(() => {
     let rec = 0;
     let gas = 0;
-    transactions.forEach(tx => {
+    realTransactions.forEach(tx => {
       const val = parseFloat(tx.valor) || 0;
       if (tx.categoria === 'Receita') {
         rec += val;
@@ -272,16 +356,26 @@ function App() {
 
   useEffect(() => {
     const fetchAdvisorTip = async () => {
-      if (transactions.length === 0) {
+      if (realTransactions.length === 0) {
         setAdvisorTip('');
         return;
       }
       setAdvisorLoading(true);
+      
+      const metasStatus = Object.keys(metas).map(cat => {
+        const spent = chartDataBar.find(c => c.name === cat)?.value || 0;
+        return `${cat}: Meta R$${metas[cat]}, Gasto R$${spent}`;
+      }).join('; ');
+
       try {
         const response = await fetch('https://projetofinal-senai.onrender.com/advisor', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ receita: totalReceita, gasto: totalGasto })
+          body: JSON.stringify({ 
+            receita: totalReceita, 
+            gasto: totalGasto,
+            metas_status: metasStatus || 'Nenhuma meta definida.'
+          })
         });
         if (response.ok) {
           const resData = await response.json();
@@ -307,6 +401,26 @@ function App() {
 
   return (
     <div className="dashboard-container">
+      {showMetasModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <button aria-label="Fechar modal" className="close-btn" onClick={() => setShowMetasModal(false)}><X size={24} /></button>
+            <h2>Definir Meta por Categoria</h2>
+            <form onSubmit={handleSaveMeta} className="edit-form">
+              <div className="form-group">
+                <label>Categoria</label>
+                <input type="text" name="meta_categoria" placeholder="Ex: Alimentacao" value={metaForm.categoria} onChange={e => setMetaForm({...metaForm, categoria: e.target.value})} required />
+              </div>
+              <div className="form-group">
+                <label>Limite de Gasto (R$)</label>
+                <input type="number" name="meta_valor" step="0.01" value={metaForm.valor} onChange={e => setMetaForm({...metaForm, valor: e.target.value})} required />
+              </div>
+              <button type="submit" className="save-btn">Salvar Meta</button>
+            </form>
+          </div>
+        </div>
+      )}
+      
       {editingTx && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -344,6 +458,9 @@ function App() {
         <button aria-label="Mês anterior" onClick={handlePrevMonth}><ChevronLeft size={24} /></button>
         <h2>{currentMonthName}</h2>
         <button aria-label="Próximo mês" onClick={handleNextMonth}><ChevronRight size={24} /></button>
+        <button className="metas-btn" onClick={() => setShowMetasModal(true)} title="Gerenciar Metas">
+          <Target size={20} /> Metas
+        </button>
       </div>
 
       <div className="card full-width">
@@ -404,6 +521,33 @@ function App() {
           </p>
         )}
       </div>
+
+      {Object.keys(metas).length > 0 && (
+        <div className="card full-width">
+          <h2><Target size={24} color="#f43f5e" /> Progresso das Metas</h2>
+          <div className="metas-container">
+            {Object.keys(metas).map(cat => {
+              const metaVal = metas[cat];
+              const gastoVal = chartDataBar.find(c => c.name === cat)?.value || 0;
+              const percent = Math.min((gastoVal / metaVal) * 100, 100);
+              let color = '#34d399'; // Verde
+              if (percent > 80) color = '#fbbf24'; // Amarelo
+              if (percent >= 100) color = '#fb7185'; // Vermelho
+              return (
+                <div key={cat} className="meta-item">
+                  <div className="meta-header">
+                    <span>{cat}</span>
+                    <span>R$ {gastoVal.toFixed(2)} / R$ {metaVal.toFixed(2)}</span>
+                  </div>
+                  <div className="meta-bar-bg">
+                    <div className="meta-bar-fill" style={{ width: `${percent}%`, backgroundColor: color }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <h2><TrendingUp size={24} color="#34d399" /> Entradas vs Saídas</h2>
@@ -527,9 +671,9 @@ function App() {
         <h2><List size={24} color="#a78bfa" /> Histórico de Transações</h2>
         {loading ? (
           <p>Carregando…</p>
-        ) : transactions.length > 0 ? (
+        ) : realTransactions.length > 0 ? (
           <div className="transaction-list">
-            {transactions.map(tx => {
+            {realTransactions.map(tx => {
               const dataFormatada = tx.data ? new Date(tx.data).toLocaleDateString('pt-BR') : 'Data não informada';
               return (
                 <div key={tx.id} className="transaction-item">
@@ -555,6 +699,35 @@ function App() {
           <p>Você ainda não tem despesas registradas neste mês.</p>
         )}
       </div>
+
+      {/* Floating Chatbot */}
+      <div className={`chatbot-container ${chatOpen ? 'open' : ''}`}>
+        {!chatOpen ? (
+          <button className="chat-toggle-btn" onClick={() => setChatOpen(true)}>
+            <MessageSquare size={24} />
+          </button>
+        ) : (
+          <div className="chat-window">
+            <div className="chat-header">
+              <h3>Consultor Inteligente</h3>
+              <button onClick={() => setChatOpen(false)}><X size={20} /></button>
+            </div>
+            <div className="chat-messages">
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`chat-bubble ${m.role}`}>
+                  {m.content}
+                </div>
+              ))}
+              {chatLoading && <div className="chat-bubble assistant"><Loader2 className="spinner" size={16} /></div>}
+            </div>
+            <form onSubmit={sendChatMessage} className="chat-input-form">
+              <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Pergunte algo..." />
+              <button type="submit" disabled={chatLoading || !chatInput.trim()}><Send size={18} /></button>
+            </form>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
