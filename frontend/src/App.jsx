@@ -279,8 +279,8 @@ function App() {
       )}
 
       <header>
-        <h1>Wallet App</h1>
-        <p>Controle Inteligente baseado em NLP</p>
+        <h1>Carteira digital</h1>
+        <p>O controle na palma da sua mão!</p>
       </header>
 
       <div className="month-selector">
