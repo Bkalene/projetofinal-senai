@@ -262,6 +262,13 @@ function App() {
   const maiorCategoria = chartDataBar.length > 0 ? chartDataBar[0].name : 'N/A';
   const maiorGasto = chartDataBar.length > 0 ? chartDataBar[0].value : 0;
 
+  const chartDataBalance = useMemo(() => {
+    return [
+      { name: 'Entradas', value: totalReceita },
+      { name: 'Saídas', value: totalGasto }
+    ];
+  }, [totalReceita, totalGasto]);
+
   useEffect(() => {
     const fetchAdvisorTip = async () => {
       if (transactions.length === 0) {
@@ -394,6 +401,35 @@ function App() {
           <p style={{ fontSize: '1.1rem', color: '#e2e8f0', lineHeight: '1.6', fontStyle: 'italic' }}>
             "{advisorTip || "Adicione algumas transações para receber dicas personalizadas."}"
           </p>
+        )}
+      </div>
+
+      <div className="card">
+        <h2><TrendingUp size={24} color="#34d399" /> Entradas vs Saídas</h2>
+        {loading ? (
+          <div className="chart-container"><p>Carregando…</p></div>
+        ) : (
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartDataBalance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={(value) => `R$ ${value}`} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  formatter={(value) => `R$ ${value.toFixed(2)}`}
+                  contentStyle={{ borderRadius: '12px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  itemStyle={{ color: '#f8fafc' }}
+                  labelStyle={{ color: '#94a3b8' }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {chartDataBalance.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.name === 'Entradas' ? '#34d399' : '#fb7185'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 
