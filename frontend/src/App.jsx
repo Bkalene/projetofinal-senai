@@ -253,24 +253,24 @@ function App() {
       {editingTx && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <button className="close-btn" onClick={() => setEditingTx(null)}><X size={24} /></button>
+            <button aria-label="Fechar modal" className="close-btn" onClick={() => setEditingTx(null)}><X size={24} /></button>
             <h2>Editar Transação</h2>
             <form onSubmit={handleUpdate} className="edit-form">
               <div className="form-group">
                 <label>Descrição</label>
-                <input type="text" value={editForm.descricao} onChange={e => setEditForm({...editForm, descricao: e.target.value})} required />
+                <input type="text" name="descricao" autoComplete="off" value={editForm.descricao} onChange={e => setEditForm({...editForm, descricao: e.target.value})} required />
               </div>
               <div className="form-group">
                 <label>Categoria</label>
-                <input type="text" value={editForm.categoria} onChange={e => setEditForm({...editForm, categoria: e.target.value})} required />
+                <input type="text" name="categoria" autoComplete="off" value={editForm.categoria} onChange={e => setEditForm({...editForm, categoria: e.target.value})} required />
               </div>
               <div className="form-group">
                 <label>Valor (R$)</label>
-                <input type="number" step="0.01" value={editForm.valor} onChange={e => setEditForm({...editForm, valor: e.target.value})} required />
+                <input type="number" name="valor" step="0.01" value={editForm.valor} onChange={e => setEditForm({...editForm, valor: e.target.value})} required />
               </div>
               <div className="form-group">
                 <label>Data</label>
-                <input type="date" value={editForm.data} onChange={e => setEditForm({...editForm, data: e.target.value})} required />
+                <input type="date" name="data" value={editForm.data} onChange={e => setEditForm({...editForm, data: e.target.value})} required />
               </div>
               <button type="submit" className="save-btn">Salvar Alterações</button>
             </form>
@@ -284,23 +284,26 @@ function App() {
       </header>
 
       <div className="month-selector">
-        <button onClick={handlePrevMonth}><ChevronLeft size={24} /></button>
+        <button aria-label="Mês anterior" onClick={handlePrevMonth}><ChevronLeft size={24} /></button>
         <h2>{currentMonthName}</h2>
-        <button onClick={handleNextMonth}><ChevronRight size={24} /></button>
+        <button aria-label="Próximo mês" onClick={handleNextMonth}><ChevronRight size={24} /></button>
       </div>
 
       <div className="card full-width">
         <form onSubmit={handleSubmit} className="nlp-form">
           <input 
             type="text" 
+            name="nlp_input"
+            autoComplete="off"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Ex: Gastei 45 reais com Uber ontem..."
+            placeholder="Ex: Gastei 45 reais com Uber ontem…"
             disabled={isProcessing}
             className="nlp-input"
           />
           <button 
             type="button"
+            aria-label="Ditar por voz"
             onClick={startListening}
             disabled={isProcessing || isListening}
             className={`mic-btn ${isListening ? 'listening' : ''}`}
@@ -313,7 +316,7 @@ function App() {
             disabled={isProcessing || (!inputText.trim() && !isListening)}
             className="nlp-btn"
           >
-            {isProcessing ? <><Loader2 className="spinner" size={20} /> ...</> : <><Send size={20} /> Enviar</>}
+            {isProcessing ? <><Loader2 className="spinner" size={20} /> …</> : <><Send size={20} /> Enviar</>}
           </button>
         </form>
         {feedbackMsg && <span className="feedback-msg">{feedbackMsg}</span>}
@@ -333,7 +336,7 @@ function App() {
       <div className="card">
         <h2><BarChartIcon size={24} color="#60a5fa" /> Distribuição de Gastos</h2>
         {loading ? (
-          <div className="chart-container"><p>Carregando...</p></div>
+          <div className="chart-container"><p>Carregando…</p></div>
         ) : chartDataBar.length > 0 ? (
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -364,7 +367,7 @@ function App() {
       <div className="card">
         <h2><TrendingUp size={24} color="#34d399" /> Evolução no Mês</h2>
         {loading ? (
-          <div className="chart-container"><p>Carregando...</p></div>
+          <div className="chart-container"><p>Carregando…</p></div>
         ) : chartDataLine.length > 0 ? (
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -391,7 +394,7 @@ function App() {
       <div className="card">
         <h2><CreditCard size={24} color="#fbbf24" /> Métodos de Pagamento</h2>
         {loading ? (
-          <div className="chart-container"><p>Carregando...</p></div>
+          <div className="chart-container"><p>Carregando…</p></div>
         ) : chartDataPayment.length > 0 ? (
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -422,7 +425,7 @@ function App() {
       <div className="card full-width">
         <h2><List size={24} color="#a78bfa" /> Histórico de Transações</h2>
         {loading ? (
-          <p>Carregando...</p>
+          <p>Carregando…</p>
         ) : transactions.length > 0 ? (
           <div className="transaction-list">
             {transactions.map(tx => {
@@ -439,8 +442,8 @@ function App() {
                       -R$ {parseFloat(tx.valor || 0).toFixed(2)}
                     </div>
                     <div className="transaction-actions">
-                      <button className="action-btn edit" onClick={() => openEditModal(tx)}><Edit2 size={18} /></button>
-                      <button className="action-btn delete" onClick={() => handleDelete(tx.id)}><Trash2 size={18} /></button>
+                      <button aria-label="Editar transação" className="action-btn edit" onClick={() => openEditModal(tx)}><Edit2 size={18} /></button>
+                      <button aria-label="Excluir transação" className="action-btn delete" onClick={() => handleDelete(tx.id)}><Trash2 size={18} /></button>
                     </div>
                   </div>
                 </div>
