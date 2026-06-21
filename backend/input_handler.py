@@ -152,7 +152,7 @@ def financial_advisor(req: AdvisorRequest):
         print(f"Erro ao gerar dica: {e}")
         raise HTTPException(status_code=500, detail="Falha ao gerar conselho.")
 
-@app.get("/keepalive")
+@app.api_route("/keepalive", methods=["GET", "HEAD"])
 def keep_alive():
     """Rota para o UptimeRobot bater a cada 5 minutos e impedir o Render de dormir."""
     # Como não temos token de instagram ou contagem de seguidores neste app, 
