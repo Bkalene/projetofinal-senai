@@ -660,12 +660,12 @@ header p {
 }
 
 /* Metas / Goals */
-.metas-btn {
+.month-selector .metas-btn {
   background: var(--bg-card);
   color: var(--text-main);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -673,12 +673,14 @@ header p {
   cursor: pointer;
   transition: all 0.2s;
   margin-left: auto;
+  width: auto;
+  height: auto;
 }
-.metas-btn:hover {
+.month-selector .metas-btn:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 @media (max-width: 768px) {
-  .metas-btn {
+  .month-selector .metas-btn {
     margin-left: 0;
     margin-top: 0.5rem;
     width: 100%;
