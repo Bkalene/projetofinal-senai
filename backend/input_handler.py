@@ -152,6 +152,13 @@ def financial_advisor(req: AdvisorRequest):
         print(f"Erro ao gerar dica: {e}")
         raise HTTPException(status_code=500, detail="Falha ao gerar conselho.")
 
+@app.get("/keepalive")
+def keep_alive():
+    """Rota para o UptimeRobot bater a cada 5 minutos e impedir o Render de dormir."""
+    # Como não temos token de instagram ou contagem de seguidores neste app, 
+    # apenas retornamos um status de sucesso.
+    return {"status": "awake", "message": "O servidor está acordado e pronto!"}
+
 if __name__ == "__main__":
     print("=== Iniciando Servidor Wallet App API (FastAPI) ===")
     uvicorn.run("input_handler:app", host="0.0.0.0", port=8000, reload=True)
